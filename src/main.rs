@@ -79,7 +79,7 @@ mod test {
     #[test]
     fn check_writing_to_file() {
         let file_name: String = "megabits".to_string();
-        let borrowed_file_name = file_name.clone();
+        let borrowed_file_name: String = file_name.clone();
 
         let data: String = "rust in peace".to_string();
 
@@ -90,7 +90,7 @@ mod test {
             Err(e) => panic!("{}", e),
         };
 
-        let expect = String::from(data);
+        let expect: String = String::from(data);
 
         assert_eq!(r, expect);
     }
