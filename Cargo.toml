@@ -10,3 +10,4 @@ reqwest = "0.11"
 serde = { version = "1.0.104", features = ["derive"] }
 tokio = { version = "1.11.0", features = ["full"] }
 structopt = "0.3.13"
+futures = { version = "0.3", features = ["compat"] }

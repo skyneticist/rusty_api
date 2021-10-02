@@ -1,3 +1,4 @@
+use futures::executor::block_on;
 use std::fs::File;
 use std::io::{BufWriter, Write};
 use structopt::StructOpt;
@@ -6,11 +7,7 @@ use structopt::StructOpt;
 struct Cli {
     #[structopt(short, long)]
     debug: bool,
-    #[structopt(
-        short,
-        long,
-        default_value = "https://restcountries.eu/rest/v2/currency/jpy"
-    )]
+    #[structopt(short, long, default_value = "https://api.spacexdata.com/v3/capsules")]
     url: String,
     #[structopt(short, long, default_value = "test_file.txt")]
     file_name: String,
@@ -19,15 +16,50 @@ struct Cli {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Cli::from_args();
+    let my_future = get_links(&args);
+    let my_response = block_on(my_future);
 
-    let response = reqwest::get(&args.url).await?.text().await?;
-
-    match handle_data(&args.file_name, &response, Some(args.debug)) {
+    match handle_data(
+        &args.file_name,
+        &my_response.unwrap_or_default(),
+        Some(args.debug),
+    ) {
         Ok(_) => (),
         Err(e) => println!("{}", e),
     }
 
+    let rockets_filename: String = "spacex_all_rockets.txt".to_string();
+
+    let spacex_future = get_projects();
+    let future_response = block_on(spacex_future);
+
+    match handle_data(
+        &rockets_filename,
+        &future_response.unwrap_or_default(),
+        Some(true),
+    ) {
+        Ok(_) => (),
+        Err(e) => println!("{}", e),
+    }
+    
     Ok(())
+}
+
+async fn get_links(args: &Cli) -> Result<String, Box<dyn std::error::Error>> {
+    let response: String = match reqwest::get(&args.url).await?.text().await {
+        Ok(r) => r,
+        Err(e) => e.to_string(),
+    };
+    return Ok(response);
+}
+
+async fn get_projects() -> Result<String, Box<dyn std::error::Error>> {
+    let spacex_rockets_url: String = "https://api.spacexdata.com/v3/rockets".to_string();
+    let response: String = match reqwest::get(spacex_rockets_url).await?.text().await {
+        Ok(r) => r,
+        Err(e) => e.to_string(),
+    };
+    return Ok(response);
 }
 
 fn handle_data(
@@ -61,7 +93,22 @@ fn write_to_file(file_name: &String, data: &String) {
 
 #[cfg(test)]
 mod test {
+
     use super::*;
+
+    // attempting to write an async tokio runtime for
+    // handling async tokio calls in various tests below
+    // -------------------------------------------------
+    // fn run_one_call<F>(f: F) -> Result<F::Item, F::Error>
+    // where
+    //     F: IntoFuture,
+    //     F::Future: Send + 'static,
+    //     F::Item: Send + 'static,
+    //     F::Error: Send + 'static,
+    // {
+    //     let mut runtime = tokio::runtime::Runtime::new().expect("Unable to create runtime");
+    //     runtime.block_on(f.into_future())
+    // }
 
     #[test]
     fn check_data_handling() {
@@ -85,13 +132,21 @@ mod test {
 
         write_to_file(&file_name, &data);
 
-        let r = match std::fs::read_to_string(borrowed_file_name) {
+        let result = match std::fs::read_to_string(borrowed_file_name) {
             Ok(k) => k,
             Err(e) => panic!("{}", e),
         };
 
-        let expect: String = String::from(data);
+        let expected: String = String::from(data);
 
-        assert_eq!(r, expect);
+        assert_eq!(result, expected);
     }
+
+    // #[test]
+    // fn test_get_projects() {
+    //     let result = block_on(get_projects());
+    //     let result = result.unwrap_or_default();
+
+    //     assert_eq!();
+    // }
 }
