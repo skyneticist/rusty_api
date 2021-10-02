@@ -96,7 +96,7 @@ mod test {
     use super::*;
 
     // attempting to write an async tokio runtime for
-    // handling async tokio calls in various tests below
+    // handling async calls in various tests below
     // -------------------------------------------------
     // fn run_one_call<F>(f: F) -> Result<F::Item, F::Error>
     // where
