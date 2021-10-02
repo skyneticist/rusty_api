@@ -30,7 +30,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let rockets_filename: String = "spacex_all_rockets.txt".to_string();
 
-    let spacex_future = get_projects();
+    let spacex_future = get_rockets();
     let future_response = block_on(spacex_future);
 
     match handle_data(
@@ -41,7 +41,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         Ok(_) => (),
         Err(e) => println!("{}", e),
     }
-    
     Ok(())
 }
 
@@ -53,7 +52,7 @@ async fn get_links(args: &Cli) -> Result<String, Box<dyn std::error::Error>> {
     return Ok(response);
 }
 
-async fn get_projects() -> Result<String, Box<dyn std::error::Error>> {
+async fn get_rockets() -> Result<String, Box<dyn std::error::Error>> {
     let spacex_rockets_url: String = "https://api.spacexdata.com/v3/rockets".to_string();
     let response: String = match reqwest::get(spacex_rockets_url).await?.text().await {
         Ok(r) => r,
@@ -120,6 +119,7 @@ mod test {
             Err(e) => println!("{}", e),
         };
 
+        // simple Ok() result assertion
         assert_eq!(result, ());
     }
 
@@ -143,12 +143,13 @@ mod test {
     }
 
     #[test]
-    fn test_get_projects() {
+    fn test_get_rockets() {
+        let expected: String = std::fs::read_to_string("test_response_all_rockets.txt".to_string())
+            .unwrap_or_default();
+
         let runtime = tokio::runtime::Runtime::new().expect("Unable to create a runtime");
-        let s = runtime.block_on(get_projects());
+        let s = runtime.block_on(get_rockets());
 
-        let expect = "".to_string();
-
-        assert_eq!(s.unwrap_or_default(), expect);
+        assert_eq!(s.unwrap_or_default(), expected);
     }
 }
