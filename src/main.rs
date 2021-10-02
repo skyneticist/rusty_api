@@ -142,11 +142,13 @@ mod test {
         assert_eq!(result, expected);
     }
 
-    // #[test]
-    // fn test_get_projects() {
-    //     let result = block_on(get_projects());
-    //     let result = result.unwrap_or_default();
+    #[test]
+    fn test_get_projects() {
+        let runtime = tokio::runtime::Runtime::new().expect("Unable to create a runtime");
+        let s = runtime.block_on(get_projects());
 
-    //     assert_eq!();
-    // }
+        let expect = "".to_string();
+
+        assert_eq!(s.unwrap_or_default(), expect);
+    }
 }
