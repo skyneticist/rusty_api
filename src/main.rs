@@ -16,7 +16,7 @@ struct Cli {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Cli::from_args();
-    let my_future = get_links(&args);
+    let my_future = get_url(&args);
     let my_response = block_on(my_future);
 
     match handle_data(
@@ -44,7 +44,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-async fn get_links(args: &Cli) -> Result<String, Box<dyn std::error::Error>> {
+async fn get_url(args: &Cli) -> Result<String, Box<dyn std::error::Error>> {
     let response: String = match reqwest::get(&args.url).await?.text().await {
         Ok(r) => r,
         Err(e) => e.to_string(),
@@ -93,14 +93,15 @@ fn write_to_file(file_name: &String, data: &String) {
 #[cfg(test)]
 mod test {
 
-    use super::*;
+use super::*;
 
     // attempting to write an async tokio runtime for
     // handling async calls in various tests below
+    // UPDATE: IntoFuture requires nightly-only Rust build
     // -------------------------------------------------
     // fn run_one_call<F>(f: F) -> Result<F::Item, F::Error>
     // where
-    //     F: IntoFuture,
+    //     F: f,
     //     F::Future: Send + 'static,
     //     F::Item: Send + 'static,
     //     F::Error: Send + 'static,
@@ -125,19 +126,17 @@ mod test {
 
     #[test]
     fn check_writing_to_file() {
+        let data: String = "rust in peace".to_string();
+        let expected: String = data.clone();
+
         let file_name: String = "megabits".to_string();
         let borrowed_file_name: String = file_name.clone();
 
-        let data: String = "rust in peace".to_string();
-
         write_to_file(&file_name, &data);
-
         let result = match std::fs::read_to_string(borrowed_file_name) {
             Ok(k) => k,
             Err(e) => panic!("{}", e),
         };
-
-        let expected: String = String::from(data);
 
         assert_eq!(result, expected);
     }
@@ -149,6 +148,20 @@ mod test {
 
         let runtime = tokio::runtime::Runtime::new().expect("Unable to create a runtime");
         let s = runtime.block_on(get_rockets());
+
+        assert_eq!(s.unwrap_or_default(), expected);
+    }
+
+    #[test]
+    fn test_get_url() {
+        let mut args = Cli::from_args();
+        args.url = "https://api.spacexdata.com/v3/rockets".to_string();
+    
+        let expected: String = std::fs::read_to_string("test_response_all_rockets.txt".to_string())
+            .unwrap_or_default();
+        
+        let runtime = tokio::runtime::Runtime::new().expect("Unable to create a runtime");
+        let s = runtime.block_on(get_url(&args));
 
         assert_eq!(s.unwrap_or_default(), expected);
     }
